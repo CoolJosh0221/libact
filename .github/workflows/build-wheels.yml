@@ -1,0 +1,180 @@
+name: Build and Publish Wheels
+
+on:
+  push:
+    branches: [master, main]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [master, main]
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  build_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, windows-2022, macos-13, macos-14]
+        # macos-13 is Intel, macos-14 is ARM64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install cibuildwheel
+        run: python -m pip install cibuildwheel==2.21.3
+
+      - name: Build wheels
+        run: python -m cibuildwheel --output-dir wheelhouse
+        env:
+          # Build for Python 3.9-3.12
+          CIBW_BUILD: "cp39-* cp310-* cp311-* cp312-*"
+          # Skip 32-bit builds and musllinux (Alpine)
+          CIBW_SKIP: "*-win32 *-manylinux_i686 *-musllinux_*"
+
+          # Install BLAS/LAPACK on Linux
+          CIBW_BEFORE_ALL_LINUX: |
+            yum install -y openblas-devel lapack-devel || \
+            apt-get update && apt-get install -y libopenblas-dev liblapacke-dev || \
+            true
+
+          # macOS uses Accelerate framework by default (no extra install needed)
+          # But we can also use OpenBLAS from Homebrew for compatibility
+          CIBW_BEFORE_ALL_MACOS: |
+            brew install openblas || true
+
+          # Windows: Use OpenBLAS from conda-forge or build without BLAS
+          # For simplicity, we'll let the build gracefully degrade without BLAS on Windows
+          CIBW_BEFORE_BUILD_WINDOWS: |
+            pip install delvewheel
+
+          # Repair wheels on Linux
+          CIBW_REPAIR_WHEEL_COMMAND_LINUX: |
+            auditwheel repair -w {dest_dir} {wheel}
+
+          # Repair wheels on Windows with delvewheel
+          CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: |
+            delvewheel repair -w {dest_dir} {wheel} || cp {wheel} {dest_dir}
+
+          # macOS wheel repair (delocate)
+          CIBW_REPAIR_WHEEL_COMMAND_MACOS: |
+            delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel}
+
+          # Test the wheels
+          CIBW_TEST_COMMAND: |
+            python -c "import libact; print('libact imported successfully')" && \
+            python -c "from libact.base.dataset import Dataset; print('Dataset imported successfully')"
+
+          # Install test dependencies
+          CIBW_TEST_REQUIRES: pytest
+
+          # Environment variables for build
+          CIBW_ENVIRONMENT_LINUX: "CFLAGS='-O3' CXXFLAGS='-O3'"
+          CIBW_ENVIRONMENT_MACOS: "CFLAGS='-O3' CXXFLAGS='-O3' LDFLAGS='-L/opt/homebrew/opt/openblas/lib -L/usr/local/opt/openblas/lib' CPPFLAGS='-I/opt/homebrew/opt/openblas/include -I/usr/local/opt/openblas/include'"
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}
+          path: ./wheelhouse/*.whl
+
+  build_sdist:
+    name: Build source distribution
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install build tools
+        run: |
+          pip install build meson-python meson ninja cython numpy
+
+      - name: Build sdist
+        run: python -m build --sdist
+
+      - name: Upload sdist
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+
+  test_sdist:
+    name: Test sdist on ${{ matrix.os }}
+    needs: build_sdist
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, macos-13, windows-2022]
+        python-version: ['3.11']
+
+    steps:
+      - name: Download sdist
+        uses: actions/download-artifact@v4
+        with:
+          name: sdist
+          path: dist
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential gfortran libopenblas-dev liblapacke-dev
+
+      - name: Install system dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install openblas
+
+      - name: Install from sdist
+        run: |
+          pip install dist/*.tar.gz
+        shell: bash
+
+      - name: Test import
+        run: |
+          python -c "import libact; print('libact imported successfully')"
+          python -c "from libact.base.dataset import Dataset; print('Dataset imported successfully')"
+
+  publish:
+    name: Publish to PyPI
+    needs: [build_wheels, build_sdist]
+    runs-on: ubuntu-22.04
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+
+    environment:
+      name: pypi
+      url: https://pypi.org/project/libact/
+
+    permissions:
+      id-token: write  # Required for trusted publishing
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: List distribution files
+        run: ls -la dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/

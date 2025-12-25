@@ -17,10 +17,17 @@ authors = [
     { name = "H.-T. Lin", email = "htlin@csie.ntu.edu.tw" },
 ]
 classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows",
     "Topic :: Scientific/Engineering",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -49,3 +56,23 @@ dev = [
 
 # Note: Editable installs with meson-python rebuild on import and require build tools
 # at runtime. Install with: pip install -e ".[dev]" to ensure dependencies are available
+
+[tool.cibuildwheel]
+# Build for Python 3.9-3.12
+build = "cp39-* cp310-* cp311-* cp312-*"
+# Skip 32-bit builds, musllinux, and PyPy
+skip = "*-win32 *-manylinux_i686 *-musllinux_* pp*"
+
+# Test that the package imports correctly
+test-command = "python -c \"import libact; from libact.base.dataset import Dataset; print('libact works!')\""
+
+[tool.cibuildwheel.linux]
+before-all = "yum install -y openblas-devel lapack-devel || apt-get update && apt-get install -y libopenblas-dev liblapacke-dev || true"
+
+[tool.cibuildwheel.macos]
+before-all = "brew install openblas || true"
+environment = { LDFLAGS="-L/opt/homebrew/opt/openblas/lib -L/usr/local/opt/openblas/lib", CPPFLAGS="-I/opt/homebrew/opt/openblas/include -I/usr/local/opt/openblas/include" }
+
+[tool.cibuildwheel.windows]
+before-build = "pip install delvewheel"
+# Windows builds without BLAS/LAPACK by default (optional features will be disabled)
