@@ -2,9 +2,13 @@
 Base interfaces for use in the package.
 The package works according to the interfaces defined below.
 """
+import numbers
+
 from six import with_metaclass
 
 from abc import ABCMeta, abstractmethod
+
+import numpy as np
 
 
 class QueryStrategy(with_metaclass(ABCMeta, object)):
@@ -60,6 +64,88 @@ class QueryStrategy(with_metaclass(ABCMeta, object)):
             f"{self.__class__.__name__} does not implement _get_scores(). "
             "This is required for batch mode and score-based composition."
         )
+
+    @staticmethod
+    def _check_batch_size(batch_size, n_unlabeled):
+        """Validate make_query_batch arguments.
+
+        Parameters
+        ----------
+        batch_size : int
+            The requested batch size.
+
+        n_unlabeled : int
+            Number of unlabeled samples currently in the pool.
+
+        Raises
+        ------
+        TypeError
+            If batch_size is not an integer (bool is rejected).
+
+        ValueError
+            If batch_size < 1, the pool is empty, or batch_size exceeds the
+            pool size.
+        """
+        if isinstance(batch_size, bool) or \
+                not isinstance(batch_size, numbers.Integral):
+            raise TypeError(
+                "batch_size must be an integer, got %r" % (batch_size,))
+        if batch_size < 1:
+            raise ValueError(
+                "batch_size must be at least 1, got %d" % batch_size)
+        if n_unlabeled == 0:
+            raise ValueError("No unlabeled samples available")
+        if batch_size > n_unlabeled:
+            raise ValueError(
+                "batch_size (%d) exceeds the number of unlabeled samples "
+                "(%d)" % (batch_size, n_unlabeled))
+
+    def make_query_batch(self, batch_size):
+        """Return a batch of distinct unlabeled samples to be queried.
+
+        The default implementation ranks the unlabeled pool by the
+        acquisition scores from :py:meth:`_get_scores` and returns the
+        ``batch_size`` highest-scoring entry ids. Strategies override this
+        method when a faithful batch generalization differs from top-k
+        (e.g. iterative k-center for CoreSet, sampling without replacement
+        for RandomSampling).
+
+        Unlike :py:meth:`make_query`, ties are broken deterministically
+        (stable sort, original pool order), so ``make_query_batch(1)`` may
+        differ from ``make_query()`` for strategies that randomize
+        tie-breaking.
+
+        Parameters
+        ----------
+        batch_size : int
+            Number of samples to query. Must satisfy
+            ``1 <= batch_size <= n_unlabeled``. No silent clamping is
+            performed.
+
+        Returns
+        -------
+        entry_ids : np.ndarray of int, shape (batch_size,)
+            Distinct entry ids of the samples to be queried, most preferred
+            first.
+
+        Raises
+        ------
+        TypeError
+            If batch_size is not an integer.
+
+        ValueError
+            If batch_size < 1, batch_size exceeds the number of unlabeled
+            samples, or there are no unlabeled samples.
+
+        NotImplementedError
+            If the strategy does not support per-sample scoring through
+            :py:meth:`_get_scores`.
+        """
+        entry_ids, scores = self._get_scores()
+        self._check_batch_size(batch_size, len(entry_ids))
+
+        order = np.argsort(-np.asarray(scores, dtype=float), kind='stable')
+        return np.asarray(entry_ids)[order[:batch_size]]
 
     @abstractmethod
     def make_query(self):
