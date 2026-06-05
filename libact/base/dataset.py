@@ -147,6 +147,57 @@ class Dataset(object):
         for callback in self._update_callback:
             callback(entry_id, new_label)
 
+    def update_batch(self, entry_ids, labels):
+        """Update multiple entries with their labels in a single call.
+
+        Labels are applied through :py:meth:`update` one entry at a time,
+        in the given order, so every registered callback observes exactly
+        the same incremental sequence of ``(entry_id, label)``
+        notifications as the equivalent series of individual ``update()``
+        calls. This keeps stateful observers correct (e.g. query
+        strategies that retrain models or maintain index bookkeeping in
+        their update hook).
+
+        Note that some observers impose assumptions of their own on the
+        update stream; for instance ActiveLearningByLearning assumes each
+        update corresponds to an entry it has itself queried via
+        ``make_query()``, and updating other entries is unsupported —
+        exactly as with individual ``update()`` calls.
+
+        Parameters
+        ----------
+        entry_ids : array-like of int, shape (n_updates,)
+            Distinct entry ids of the samples to update.
+
+        labels : sequence, shape (n_updates,)
+            Label for each entry. None marks an entry as unlabeled.
+
+        Raises
+        ------
+        ValueError
+            If entry_ids is not one-dimensional, labels is not a sequence,
+            their lengths differ, or entry_ids contains duplicate entries.
+        """
+        entry_ids = np.asarray(entry_ids)
+        if entry_ids.ndim != 1:
+            raise ValueError(
+                "entry_ids must be a one-dimensional array-like; for a "
+                "single entry use update(entry_id, label)")
+        try:
+            n_labels = len(labels)
+        except TypeError:
+            raise ValueError(
+                "labels must be a sequence of the same length as entry_ids")
+        if entry_ids.shape[0] != n_labels:
+            raise ValueError(
+                "entry_ids and labels must have the same length, got "
+                "%d and %d" % (entry_ids.shape[0], n_labels))
+        if len(np.unique(entry_ids)) != entry_ids.shape[0]:
+            raise ValueError("entry_ids contains duplicate entries")
+
+        for entry_id, label in zip(entry_ids, labels):
+            self.update(entry_id, label)
+
     def on_update(self, callback):
         """
         Add callback function to call when dataset updated.
