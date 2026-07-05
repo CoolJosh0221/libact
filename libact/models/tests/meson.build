@@ -4,6 +4,7 @@ py_src = [
   'test_perceptron.py',
   'test_sklearn_adapter.py',
   'test_svm.py',
+  'test_torch_adapter.py',
 ]
 
 py.install_sources(

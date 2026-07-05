@@ -40,6 +40,14 @@ libact.models.svm module
     :undoc-members:
     :show-inheritance:
 
+libact.models.torch_adapter module
+----------------------------------------
+
+.. automodule:: libact.models.torch_adapter
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Module contents
 ---------------
 

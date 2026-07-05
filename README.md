@@ -182,6 +182,7 @@ This ensures that `ninja`, `meson`, and other build tools remain available in yo
 | `SVM` | Support Vector Machine classifier |
 | `Perceptron` | Perceptron classifier |
 | `SklearnAdapter` / `SklearnProbaAdapter` | Wraps any scikit-learn estimator for use with libact |
+| `TorchAdapter` | Wraps any PyTorch `nn.Module` as a probabilistic model (requires the optional `torch` extra) |
 
 ## Usage
 
@@ -237,6 +238,31 @@ qs = ActiveLearningByLearning(
     model=model
 )
 ```
+
+### Using a PyTorch network as the model
+
+`TorchAdapter` wraps a `torch.nn.Module` so a neural network can serve as the
+model in the active-learning loop. PyTorch is an optional dependency: install
+it with `pip install libact[torch]` (or `pip install torch`).
+
+```python
+import torch.nn as nn
+
+from libact.models import TorchAdapter
+from libact.query_strategies import UncertaintySampling
+
+net = nn.Sequential(nn.Linear(64, 64), nn.ReLU(), nn.Linear(64, 10))
+model = TorchAdapter(net, classes=list(range(10)), n_epochs=20,
+                     batch_size=64, device='cpu', random_state=1126)
+
+qs = UncertaintySampling(trn_ds, method='lc', model=model)
+
+model.train(trn_ds)         # refits from scratch, like the sklearn models
+model.predict_proba(X_test) # shape (n, len(classes)), columns follow classes
+```
+
+See [examples/torch_adapter_plot.py](examples/torch_adapter_plot.py) for a
+complete active-learning run.
 
 ## Examples
 

@@ -4,6 +4,7 @@ py_src = [
   'perceptron.py',
   'sklearn_adapter.py',
   'svm.py',
+  'torch_adapter.py',
 ]
 
 py.install_sources(
