@@ -24,17 +24,20 @@ from libact.query_strategies import (
     ActiveLearningByLearning,
 )
 
-# Try importing C-extension strategies
+# The strategy classes always import; probe the private compiled modules to
+# decide whether the C extensions are actually available.
+from libact.query_strategies import HintSVM, VarianceReduction
+
 try:
-    from libact.query_strategies import HintSVM
+    from libact.query_strategies import _hintsvm  # noqa: F401
     HAS_HINTSVM = True
-except (ImportError, ModuleNotFoundError):
+except ImportError:
     HAS_HINTSVM = False
 
 try:
-    from libact.query_strategies import VarianceReduction
+    from libact.query_strategies import _variance_reduction  # noqa: F401
     HAS_VARIANCE_REDUCTION = True
-except (ImportError, ModuleNotFoundError):
+except ImportError:
     HAS_VARIANCE_REDUCTION = False
 
 

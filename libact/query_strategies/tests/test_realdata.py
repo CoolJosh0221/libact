@@ -17,6 +17,12 @@ from libact.query_strategies import ActiveLearningByLearning, HintSVM,\
     QueryByCommittee, QUIRE, RandomSampling, UncertaintySampling, DWUS
 from .utils import run_qs
 
+try:
+    from libact.query_strategies import _hintsvm  # noqa: F401
+    HAS_HINTSVM = True
+except ImportError:
+    HAS_HINTSVM = False
+
 
 class RealdataTestCase(unittest.TestCase):
 
@@ -57,6 +63,7 @@ class RealdataTestCase(unittest.TestCase):
         assert_array_equal(
             qseq, np.array([150, 16, 122, 157, 233, 160, 114, 163, 155, 56]))
 
+    @unittest.skipUnless(HAS_HINTSVM, "HintSVM C extension not compiled")
     def test_HintSVM(self):
         trn_ds = Dataset(self.X,
                          np.concatenate([self.y[:5],
@@ -129,6 +136,7 @@ class RealdataTestCase(unittest.TestCase):
         assert_array_equal(
             qseq, np.array([145, 66, 82, 37, 194, 60, 191, 211, 245, 131]))
 
+    @unittest.skipUnless(HAS_HINTSVM, "HintSVM C extension not compiled")
     def test_ActiveLearningByLearning(self):
         trn_ds = Dataset(self.X,
                          np.concatenate([self.y[:10],

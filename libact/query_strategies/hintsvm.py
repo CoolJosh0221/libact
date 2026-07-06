@@ -8,8 +8,17 @@ Standalone hintsvm can be retrieved from https://github.com/yangarbiter/hintsvm
 import numpy as np
 
 from libact.base.interfaces import QueryStrategy
-from libact.query_strategies._hintsvm import hintsvm_query
+from libact.base.exceptions import ExtensionUnavailable
 from libact.utils import inherit_docstring_from, seed_random_state, zip
+
+try:
+    # ImportError covers both a missing module (ModuleNotFoundError) and a
+    # present-but-unloadable extension ("DLL load failed" on Windows).
+    from libact.query_strategies._hintsvm import hintsvm_query
+    _HINTSVM_IMPORT_ERROR = None
+except ImportError as err:
+    hintsvm_query = None
+    _HINTSVM_IMPORT_ERROR = err
 
 
 class HintSVM(QueryStrategy):
@@ -93,6 +102,10 @@ class HintSVM(QueryStrategy):
     """
 
     def __init__(self, *args, **kwargs):
+        if hintsvm_query is None:
+            raise ExtensionUnavailable.for_strategy(
+                'HintSVM', 'libact.query_strategies._hintsvm'
+            ) from _HINTSVM_IMPORT_ERROR
         super(HintSVM, self).__init__(*args, **kwargs)
 
         # Weight on labeled data's classification error

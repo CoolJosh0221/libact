@@ -1,6 +1,7 @@
 py_src = [
   '__init__.py',
   'dataset.py',
+  'exceptions.py',
   'interfaces.py',
 ]
 

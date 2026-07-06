@@ -51,6 +51,10 @@ sudo pacman -S lapacke
 brew install openblas
 ```
 
+- Windows: the BLAS/LAPACKE-backed extensions (`HintSVM`, `VarianceReduction`)
+  are **not** built on Windows. libact installs as a pure-Python wheel; see
+  [Windows support](#windows-support) below.
+
 - Others: refer to the BLAS/LAPACKE installation guides.
 
 ## Installation
@@ -61,7 +65,28 @@ brew install openblas
 pip install libact
 ```
 
-> **Note:** For Windows users, it is recommended to use **Windows Subsystem for Linux (WSL)** as the primary environment for installing and running `libact`.
+### Windows support
+
+libact installs and imports cleanly on Windows as a **pure-Python** package.
+All pure-Python query strategies (e.g. `UncertaintySampling`,
+`QueryByCommittee`, `QUIRE`, `CoreSet`, `BALD`, `RandomSampling`) work out of
+the box.
+
+The two compiled strategies — `HintSVM` and `VarianceReduction` — link
+BLAS/LAPACK and are **only built on POSIX platforms (Linux and macOS)**; there
+is no Windows build. On Windows they still import, but constructing one raises
+`libact.base.exceptions.ExtensionUnavailable` (a subclass of `ImportError`)
+with a message explaining the limitation — you will never see a bare
+`DLL load failed`. To use these two strategies on Windows, run libact under
+**Windows Subsystem for Linux (WSL)**.
+
+If you build from source and want an explicitly pure-Python wheel (no compiler
+required), disable both extensions as shown in [Build Options](#build-options):
+
+```shell
+pip install libact --config-settings=setup-args="-Dvariance_reduction=false" \
+                    --config-settings=setup-args="-Dhintsvm=false"
+```
 
 - Install the latest development version
 
@@ -169,8 +194,8 @@ This ensures that `ninja`, `meson`, and other build tools remain available in yo
 | `QUIRE` | Informativeness + Representativeness | Combines uncertainty and density |
 | `RandomSampling` | Baseline | Uniform random selection |
 | `ActiveLearningByLearning` | Meta-algorithm | Multi-armed bandit that selects the best strategy on the fly |
-| `VarianceReduction` | Variance | Minimizes output variance (requires C extension) |
-| `HintSVM` | SVM-based | SVM-guided active learning (requires C extension) |
+| `VarianceReduction` | Variance | Minimizes output variance (requires C extension; POSIX-only) |
+| `HintSVM` | SVM-based | SVM-guided active learning (requires C extension; POSIX-only) |
 | `DensityWeightedMeta` | Density | Weights informativeness by density |
 | `DWUS` | Density + Uncertainty | Density-weighted uncertainty sampling |
 

@@ -6,6 +6,14 @@ from numpy.testing import assert_array_equal
 from libact.base.dataset import Dataset
 from libact.query_strategies import HintSVM
 
+try:
+    from libact.query_strategies import _hintsvm  # noqa: F401
+    HAS_HINTSVM = True
+except ImportError:
+    HAS_HINTSVM = False
+
+
+@unittest.skipUnless(HAS_HINTSVM, "HintSVM C extension not compiled")
 class UncertaintySamplingTestCase(unittest.TestCase):
 
     def setUp(self):

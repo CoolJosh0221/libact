@@ -67,6 +67,8 @@ Note that because of legacy reasons, Uncertainty Sampling can handle multi-class
 
 Additionally, we supported the `Active Learning By Learning` meta-algorithm (active_learning_by_learning.py) for selecting active learning algorithms for binary classification on the fly.
 
+Note that Hinted Sampling with SVM (hintsvm.py) and Variance Reduction (variance_reduction.py) are backed by compiled C extensions that link BLAS/LAPACK and are only built on POSIX platforms (Linux and macOS). On Windows, libact installs as a pure-Python package and instantiating these two strategies raises :py:class:`libact.base.exceptions.ExtensionUnavailable`; use Windows Subsystem for Linux (WSL) to run them.
+
 Model
 -----
 A :py:class:`libact.base.interfaces.Model` object represents a supervised classifiation algorithm. It contains train and predict methods, just like the fit and predict methods of the classification algorithms in `scikit-learn <http://scikit-learn.org/>`_. Note that the train method of Model only takes the labeled examples within Dataset for learning.

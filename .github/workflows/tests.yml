@@ -136,8 +136,29 @@ except ImportError:
       - name: Test basic import
         run: |
           python -c "from libact.base.dataset import Dataset; print('SUCCESS: Basic import works without BLAS/LAPACK')"
-      - name: Run basic unittests
+      - name: Verify compiled strategies degrade gracefully
         run: |
-          # Run tests but don't fail on tests that require variance_reduction or hintsvm
-          python -m unittest discover -s libact/base/tests -v || true
-          python -m unittest discover -s libact/labelers/tests -v || true
+          # Importing the strategy classes must always work; instantiating them
+          # without the extension must raise ExtensionUnavailable (an ImportError
+          # subclass) -- this is the Linux-side regression proxy for the Windows
+          # pure-Python path.
+          python -c "
+          from libact.base.dataset import Dataset
+          from libact.base.exceptions import ExtensionUnavailable
+          from libact.query_strategies import HintSVM, VarianceReduction
+          ds = Dataset([[0, 1], [1, 0], [1, 1]], [0, 1, None])
+          for name, cls in [('HintSVM', HintSVM), ('VarianceReduction', VarianceReduction)]:
+              try:
+                  cls(ds)
+              except ExtensionUnavailable as exc:
+                  assert isinstance(exc, ImportError)
+                  assert 'DLL load failed' not in str(exc)
+                  print('OK', name, '-> ExtensionUnavailable')
+              else:
+                  raise AssertionError(name + ' should have raised ExtensionUnavailable')
+          "
+      - name: Run unittests
+        run: |
+          # The full suite must pass: extension-dependent tests skip via
+          # @unittest.skipUnless guards when the C extensions are absent.
+          python -m unittest -v

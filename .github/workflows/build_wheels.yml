@@ -8,7 +8,8 @@ on:
       - '**.py'
       - '**.pyx'
       - 'pyproject.toml'
-      - 'meson.build'
+      - '**/meson.build'
+      - 'meson.options'
       - '.github/workflows/build_wheels.yml'
   pull_request:
     branches: [main, master]
@@ -16,7 +17,8 @@ on:
       - '**.py'
       - '**.pyx'
       - 'pyproject.toml'
-      - 'meson.build'
+      - '**/meson.build'
+      - 'meson.options'
       - '.github/workflows/build_wheels.yml'
   workflow_dispatch:
 
@@ -55,6 +57,99 @@ jobs:
           name: wheels-${{ matrix.os }}-${{ strategy.job-index }}
           path: ./wheelhouse/*.whl
           retention-days: 7
+
+  windows_pure_wheel:
+    name: Build & test pure-Python wheel on Windows
+    # libact's compiled strategies (HintSVM, VarianceReduction) link BLAS/LAPACK
+    # and have no Windows build. cibuildwheel keeps skipping "*-win*"; instead we
+    # build a pure-Python (py3-none-any) wheel here with both C extensions
+    # disabled, and verify it installs and imports cleanly, with the two
+    # compiled strategies degrading to ExtensionUnavailable.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build pure-Python wheel (C extensions disabled)
+        shell: bash
+        run: |
+          pipx run build --wheel \
+            -Csetup-args="-Dhintsvm=false" \
+            -Csetup-args="-Dvariance_reduction=false"
+
+      - name: Verify wheel is pure-Python (py3-none-any)
+        shell: bash
+        run: |
+          ls -l dist/
+          if ls dist/*py3-none-any.whl >/dev/null 2>&1; then
+            echo "✓ Built a pure-Python (py3-none-any) wheel"
+          else
+            echo "✗ ERROR: expected a py3-none-any wheel, got:"
+            ls dist/
+            exit 1
+          fi
+
+      - name: Upload Windows pure-Python wheel
+        uses: actions/upload-artifact@v4
+        with:
+          # NOTE: the artifact name must NOT match "wheels-*". The test_wheels
+          # and upload_testpypi jobs collect "wheels-*"; this pure wheel must
+          # never reach an index, because a py3-none-any wheel would be selected
+          # on every platform lacking a compiled wheel (musllinux, cp313, ...).
+          name: windows-pure-wheel
+          path: dist/*.whl
+          retention-days: 7
+
+      - name: Install the wheel and runtime dependencies
+        shell: bash
+        run: |
+          pip install --find-links dist libact
+          pip install numpy scipy scikit-learn matplotlib
+
+      - name: Smoke test the pure-Python install
+        shell: python
+        run: |
+          import libact
+          print("libact version:", libact.__version__)
+
+          import libact.query_strategies as qs  # must not raise
+          from libact.base.dataset import Dataset
+          from libact.base.exceptions import ExtensionUnavailable
+          from libact.query_strategies import (
+              HintSVM, VarianceReduction, UncertaintySampling,
+          )
+          from libact.models import LogisticRegression
+
+          # A pure-Python strategy must work end to end.
+          X = [[-2, -1], [1, 1], [-1, -2], [2, 1],
+               [0, 1], [1, 0], [-1, 0], [0, -1]]
+          y = [0, 1, 0, 1, None, None, None, None]
+          ds = Dataset(X, y)
+          us = UncertaintySampling(
+              ds, model=LogisticRegression(solver="liblinear"))
+          picked = us.make_query()
+          assert picked in (4, 5, 6, 7), picked
+          print("OK UncertaintySampling.make_query() ->", picked)
+
+          # The two compiled strategies must degrade gracefully -- a clear
+          # ExtensionUnavailable (an ImportError subclass), never "DLL load failed".
+          for name, cls in [("HintSVM", HintSVM),
+                            ("VarianceReduction", VarianceReduction)]:
+              try:
+                  cls(ds)
+              except ExtensionUnavailable as exc:
+                  assert isinstance(exc, ImportError)
+                  msg = str(exc)
+                  assert "Windows" in msg, msg
+                  assert "DLL load failed" not in msg, msg
+                  print("OK %s -> ExtensionUnavailable" % name)
+              else:
+                  raise AssertionError(
+                      "%s should have raised ExtensionUnavailable" % name)
+          print("OK Windows pure-Python smoke test passed")
 
   build_sdist:
     name: Build source distribution
@@ -116,22 +211,13 @@ jobs:
           assert hasattr(qs, 'RandomSampling'), 'RandomSampling not found'
           print('✓ Basic query strategies imported successfully')
 
-          # Test optional C-extension modules (may not be available if BLAS/LAPACK not found during build)
-          has_hintsvm = hasattr(qs, 'HintSVM')
-          has_variance_reduction = hasattr(qs, 'VarianceReduction')
-
-          if has_hintsvm and has_variance_reduction:
-              # Try to actually import them to verify they work
-              from libact.query_strategies import HintSVM, VarianceReduction
-              print('✓ All C-extension modules (HintSVM, VarianceReduction) available and working')
-          else:
-              missing = []
-              if not has_hintsvm:
-                  missing.append('HintSVM')
-              if not has_variance_reduction:
-                  missing.append('VarianceReduction')
-              print(f'⚠ Warning: Optional C-extensions not available: {missing}')
-              print('  (Wheels were built without BLAS/LAPACK support)')
+          # These wheels are built on Linux/macOS with BLAS/LAPACK, so the
+          # compiled extensions MUST be present. (The Windows pure-Python wheel
+          # is built and tested separately in the windows_pure_wheel job.)
+          import libact.query_strategies._hintsvm  # noqa: F401
+          import libact.query_strategies._variance_reduction  # noqa: F401
+          from libact.query_strategies import HintSVM, VarianceReduction  # noqa: F401
+          print('✓ C-extension modules (HintSVM, VarianceReduction) available and working')
           "
 
   upload_testpypi:

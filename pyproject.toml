@@ -26,11 +26,15 @@ classifiers = [
     "Topic :: Scientific/Engineering",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    # The HintSVM and VarianceReduction C extensions are POSIX-only; on Windows
+    # libact installs as a pure-Python wheel without them (see README).
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
 ]
 dependencies = [
     "numpy>=2",
@@ -52,23 +56,25 @@ dev = ["build>=1.2.2.post1", "meson>=1.5.0", "ninja", "cython", "numpy"]
 [tool.cibuildwheel]
 # Build for Python 3.9-3.12 on Linux and macOS only
 build = "cp39-* cp310-* cp311-* cp312-*"
-# Skip musllinux (Alpine), PyPy, and Windows
+# Skip musllinux (Alpine), PyPy, and Windows.
+# Windows has no BLAS/LAPACK build path for the C extensions; a pure-Python
+# Windows wheel is built and tested separately by the windows_pure_wheel job in
+# .github/workflows/build_wheels.yml.
 skip = "*-musllinux_* pp* *-win*"
-# Test the wheel after building
+# Test the wheel after building. These wheels are built with BLAS/LAPACK, so the
+# compiled extensions must be present.
 test-command = """python -c '
 import libact
 import libact.query_strategies as qs
 # Verify basic modules work
 assert hasattr(qs, \"UncertaintySampling\")
 assert hasattr(qs, \"RandomSampling\")
-print(\"✓ Basic modules imported successfully\")
-# Check optional C-extensions (may not be available without BLAS/LAPACK)
-has_ext = hasattr(qs, \"HintSVM\") and hasattr(qs, \"VarianceReduction\")
-if has_ext:
-    from libact.query_strategies import HintSVM, VarianceReduction
-    print(\"✓ C-extensions (HintSVM, VarianceReduction) available\")
-else:
-    print(\"⚠ C-extensions not available (built without BLAS/LAPACK)\")
+print(\"Basic modules imported successfully\")
+# C-extensions must be available in these (POSIX, BLAS/LAPACK) wheels
+import libact.query_strategies._hintsvm
+import libact.query_strategies._variance_reduction
+from libact.query_strategies import HintSVM, VarianceReduction
+print(\"C-extensions (HintSVM, VarianceReduction) available\")
 '"""
 test-requires = ["numpy>=2", "scipy>=1.13", "scikit-learn>=1.6", "matplotlib>=3.8"]
 

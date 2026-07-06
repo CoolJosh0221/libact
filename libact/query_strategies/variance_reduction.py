@@ -6,9 +6,18 @@ import numpy as np
 
 from libact.base.interfaces import QueryStrategy
 from libact.base.dataset import Dataset
+from libact.base.exceptions import ExtensionUnavailable
 import libact.models
-from libact.query_strategies._variance_reduction import estVar
 from libact.utils import inherit_docstring_from, zip
+
+try:
+    # ImportError covers both a missing module (ModuleNotFoundError) and a
+    # present-but-unloadable extension ("DLL load failed" on Windows).
+    from libact.query_strategies._variance_reduction import estVar
+    _VARIANCE_REDUCTION_IMPORT_ERROR = None
+except ImportError as err:
+    estVar = None
+    _VARIANCE_REDUCTION_IMPORT_ERROR = err
 
 
 class VarianceReduction(QueryStrategy):
@@ -50,6 +59,10 @@ class VarianceReduction(QueryStrategy):
     """
 
     def __init__(self, *args, **kwargs):
+        if estVar is None:
+            raise ExtensionUnavailable.for_strategy(
+                'VarianceReduction', 'libact.query_strategies._variance_reduction'
+            ) from _VARIANCE_REDUCTION_IMPORT_ERROR
         super(VarianceReduction, self).__init__(*args, **kwargs)
         model = kwargs.pop('model', None)
         if isinstance(model, str):

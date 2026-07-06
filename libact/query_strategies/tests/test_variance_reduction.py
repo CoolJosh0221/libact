@@ -8,7 +8,15 @@ from libact.models import LogisticRegression
 from libact.query_strategies import VarianceReduction
 from .utils import run_qs
 
+try:
+    from libact.query_strategies import _variance_reduction  # noqa: F401
+    HAS_VARIANCE_REDUCTION = True
+except ImportError:
+    HAS_VARIANCE_REDUCTION = False
 
+
+@unittest.skipUnless(HAS_VARIANCE_REDUCTION,
+                     "VarianceReduction C extension not compiled")
 class VarianceReductionTestCase(unittest.TestCase):
     """Variance reduction test case using artifitial dataset"""
     def setUp(self):
