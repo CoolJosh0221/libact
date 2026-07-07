@@ -116,6 +116,20 @@ class SeedReproducibilityTestCase(unittest.TestCase):
                         LogisticRegression(C=10.0)],
                 random_state=SEED))
 
+    def test_bald_base_model_stochastic(self):
+        # The base_model + n_models path manufactures the committee via
+        # clone(); the BALD seed must control the (stochastic) clones too,
+        # even though the base estimator itself is left unseeded.
+        from sklearn.ensemble import RandomForestClassifier
+        from libact.models import SklearnProbaAdapter
+        self.assert_reproducible(
+            lambda ds: BALD(
+                ds,
+                base_model=SklearnProbaAdapter(
+                    RandomForestClassifier(n_estimators=8)),
+                n_models=5,
+                random_state=SEED))
+
     def test_coreset(self):
         self.assert_reproducible(lambda ds: CoreSet(ds, random_state=SEED))
 
