@@ -5,7 +5,7 @@ Authors: [Yao-Yuan Yang](http://yyyang.me), Shao-Chuan Lee, Yu-An Chung, Tung-En
 Contributors: Zheng-Yu (Josh) Huang, Po-Yi Lu
 
 [![Build Status](https://github.com/ntucllab/libact/actions/workflows/tests.yml/badge.svg)](https://github.com/ntucllab/libact/actions/workflows/tests.yml)
-[![Documentation Status](https://readthedocs.org/projects/libact/badge/?version=latest)](http://libact.readthedocs.org/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/libact/badge/?version=latest)](https://libact.readthedocs.io/en/latest/?badge=latest)
 [![PyPI version](https://badge.fury.io/py/libact.svg)](https://badge.fury.io/py/libact)
 [![codecov.io](https://codecov.io/github/ntucllab/libact/coverage.svg?branch=master)](https://codecov.io/github/ntucllab/libact?branch=master)
 
@@ -18,7 +18,7 @@ on the fly. Furthermore, the package provides a unified interface for implementi
 
 ## Documentation
 
-The technical report associated with the package is on [arXiv](https://arxiv.org/abs/1710.00379), and the documentation for the latest release is available on [readthedocs](http://libact.readthedocs.org/en/latest/).
+The technical report associated with the package is on [arXiv](https://arxiv.org/abs/1710.00379), and the documentation for the latest release is available on [Read the Docs](https://libact.readthedocs.io/en/latest/). Local build instructions are in [the documentation development guide](docs/development.rst).
 Comments and questions on the package is welcomed at `libact-users@googlegroups.com`. All contributions to the documentation are greatly appreciated!
 
 ## Basic Dependencies
@@ -299,5 +299,4 @@ If you find this package useful, please cite the original works (see Reference o
 ## Acknowledgments
 
 The authors thank Chih-Wei Chang and other members of the [Computational Learning Lab](https://learner.csie.ntu.edu.tw/) at National Taiwan University for valuable discussions and various contributions to making this package better.
-
 
