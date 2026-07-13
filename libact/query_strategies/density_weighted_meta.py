@@ -11,7 +11,7 @@ from libact.utils import inherit_docstring_from, seed_random_state, zip
 
 
 class DensityWeightedMeta(QueryStrategy):
-    """Density Weighted Meta Algorithm
+    r"""Density Weighted Meta Algorithm
 
     :math:`\phi_A` represents the output of some base query strategy :math:`A`.
 
@@ -35,7 +35,8 @@ class DensityWeightedMeta(QueryStrategy):
 
 
     clustering_method: sklearn.cluster class instance, optional (default=Kmeans())
-        should support method fit and transform and attribute cluster_centers_.
+        should support method fit and transform and attribute
+        ``cluster_centers_``.
         (reference: http://scikit-learn.org/stable/modules/generated/sklearn.cluster.KMeans.html)
 
     beta : float
@@ -45,9 +46,6 @@ class DensityWeightedMeta(QueryStrategy):
         If int or None, random_state is passed as parameter to generate
         np.random.RandomState instance. if np.random.RandomState instance,
         random_state is the random number generate.
-
-    Attributes
-    ----------
 
     Examples
     --------

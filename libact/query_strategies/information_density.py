@@ -29,8 +29,7 @@ class InformationDensity(QueryStrategy):
     dataset : Dataset object
         The dataset to query from.
 
-    model : :py:class:`libact.base.interfaces.ProbabilisticModel` or \
-            :py:class:`libact.base.interfaces.ContinuousModel`
+    model : :py:class:`libact.base.interfaces.ProbabilisticModel` or :py:class:`libact.base.interfaces.ContinuousModel`
         The base model for uncertainty estimation.
 
     method : str, optional (default='entropy')

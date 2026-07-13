@@ -73,7 +73,8 @@ A :py:class:`libact.base.interfaces.Model` object represents a supervised classi
 
 A :py:class:`libact.base.interfaces.ContinuousModel` object represents an algorithm that supports continuous outputs during predictions, which includes an additional predict_real method.
 
-Note that there is a :py:class:`libact.models.SklearnAdapter` which
+Note that there is a
+:py:class:`libact.models.sklearn_adapter.SklearnAdapter` which
 takes a sklearn classifier instance and adaptes it to the libact Model
 interface.
 

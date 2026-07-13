@@ -36,17 +36,10 @@ class VarianceReduction(QueryStrategy):
     n_jobs : int, optional (default=1)
         The number of processors to estimate the expected variance.
 
-    Attributes
-    ----------
-
-
     References
     ----------
     .. [1] Schein, Andrew I., and Lyle H. Ungar. "Active learning for logistic
            regression: an evaluation." Machine Learning 68.3 (2007): 235-265.
-
-    .. [2] Settles, Burr. "Active learning literature survey." University of
-           Wisconsin, Madison 52.55-66 (2010): 11.
     """
 
     def __init__(self, *args, **kwargs):

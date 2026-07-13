@@ -39,7 +39,7 @@ class MaximumLossReductionMaximalConfidence(QueryStrategy):
 
     Attributes
     ----------
-    logistic_regression\_ : :py:mod:`libact.models.LogisticRegression` object instance
+    logistic_regression\_ : :py:class:`libact.models.logistic_regression.LogisticRegression` object instance
         The model used to predict the number of label in each instance.
         Should support multi-class classification.
 

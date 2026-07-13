@@ -1,6 +1,8 @@
 libact.models.multilabel package
 ================================
 
+.. automodule:: libact.models.multilabel
+
 Submodules
 ----------
 
@@ -16,15 +18,6 @@ libact.models.multilabel.dummy_clf module
 -----------------------------------------
 
 .. automodule:: libact.models.multilabel.dummy_clf
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-Module contents
----------------
-
-.. automodule:: libact.models
     :members:
     :undoc-members:
     :show-inheritance:

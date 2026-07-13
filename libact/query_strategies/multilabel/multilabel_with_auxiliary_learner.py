@@ -16,7 +16,7 @@ class MultilabelWithAuxiliaryLearner(QueryStrategy):
 
     Parameters
     ----------
-    major_learner : :py:mod:`libact.base.interfaces.Model` object instance
+    major_learner : :py:class:`libact.base.interfaces.Model` object instance
         The major multilabel learner. This learner should be the model to be
         used to solve the problem.
 
@@ -41,9 +41,6 @@ class MultilabelWithAuxiliaryLearner(QueryStrategy):
         If int or None, random_state is passed as parameter to generate
         np.random.RandomState instance. if np.random.RandomState instance,
         random_state is the random number generate.
-
-    Attributes
-    ----------
 
     Examples
     --------

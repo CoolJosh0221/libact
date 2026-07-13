@@ -1,6 +1,8 @@
 libact.query_strategies package
 ===============================
 
+.. automodule:: libact.query_strategies
+
 Submodules
 ----------
 
@@ -49,11 +51,18 @@ libact.query_strategies.random_sampling module
     :undoc-members:
     :show-inheritance:
 
-libact.query_strategies.density_weighted_uncertainty.sampling module
----------------------------------------------------
+libact.query_strategies.density_weighted_meta module
+-----------------------------------------------------
 
-.. automodule:: libact.query_strategies.density_weighted_uncertainty.sampling
-    :noindex:
+.. automodule:: libact.query_strategies.density_weighted_meta
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+libact.query_strategies.density_weighted_uncertainty_sampling module
+--------------------------------------------------------------------
+
+.. automodule:: libact.query_strategies.density_weighted_uncertainty_sampling
     :members:
     :undoc-members:
     :show-inheritance:
@@ -62,7 +71,6 @@ libact.query_strategies.uncertainty_sampling module
 ---------------------------------------------------
 
 .. automodule:: libact.query_strategies.uncertainty_sampling
-    :noindex:
     :members:
     :undoc-members:
     :show-inheritance:
@@ -103,15 +111,6 @@ libact.query_strategies.variance_reduction module
 -------------------------------------------------
 
 .. automodule:: libact.query_strategies.variance_reduction
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-Module contents
----------------
-
-.. automodule:: libact.query_strategies
     :members:
     :undoc-members:
     :show-inheritance:

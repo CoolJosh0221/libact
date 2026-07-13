@@ -44,7 +44,8 @@ class EER(QueryStrategy):
        qs = EER(dataset, model=LogisticRegression(C=0.1))
 
     Note that the model given in the :code:`model` parameter must be a
-    :py:class:`ContinuousModel` which supports predict_real method.
+    :py:class:`libact.base.interfaces.ContinuousModel` which supports
+    predict_real method.
 
 
     References

@@ -1,6 +1,8 @@
 libact.base package
 ===================
 
+.. automodule:: libact.base
+
 Submodules
 ----------
 
@@ -16,15 +18,6 @@ libact.base.interfaces module
 -----------------------------
 
 .. automodule:: libact.base.interfaces
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-Module contents
----------------
-
-.. automodule:: libact.base
     :members:
     :undoc-members:
     :show-inheritance:

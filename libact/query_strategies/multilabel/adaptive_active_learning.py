@@ -52,9 +52,6 @@ class AdaptiveActiveLearning(QueryStrategy):
         useful for debugging. For n_jobs below -1, (n_cpus + 1 + n_jobs) are
         used. Thus for n_jobs = -2, all CPUs but one are used.
 
-    Attributes
-    ----------
-
     Examples
     --------
     Here is an example of declaring a MMC query_strategy object:

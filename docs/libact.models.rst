@@ -1,6 +1,8 @@
 libact.models package
 =====================
 
+.. automodule:: libact.models
+
 Submodules
 ----------
 
@@ -36,14 +38,6 @@ libact.models.svm module
 -------------------------------
 
 .. automodule:: libact.models.svm
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: libact.models
     :members:
     :undoc-members:
     :show-inheritance:

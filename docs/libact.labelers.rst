@@ -1,6 +1,8 @@
 libact.labelers package
 =======================
 
+.. automodule:: libact.labelers
+
 Submodules
 ----------
 
@@ -16,15 +18,6 @@ libact.labelers.interactive_labeler module
 ------------------------------------------
 
 .. automodule:: libact.labelers.interactive_labeler
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-Module contents
----------------
-
-.. automodule:: libact.labelers
     :members:
     :undoc-members:
     :show-inheritance:

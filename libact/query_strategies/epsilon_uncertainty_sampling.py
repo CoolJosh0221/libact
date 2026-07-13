@@ -28,8 +28,7 @@ class EpsilonUncertaintySampling(QueryStrategy):
     dataset : Dataset object
         The dataset to query from.
 
-    model : :py:class:`libact.base.interfaces.ProbabilisticModel` or \
-            :py:class:`libact.base.interfaces.ContinuousModel`
+    model : :py:class:`libact.base.interfaces.ProbabilisticModel` or :py:class:`libact.base.interfaces.ContinuousModel`
         The base model for uncertainty estimation.
 
     epsilon : float, optional (default=0.1)
@@ -96,8 +95,10 @@ class EpsilonUncertaintySampling(QueryStrategy):
 
     See Also
     --------
-    UncertaintySampling : Pure uncertainty sampling without exploration.
-    RandomSampling : Pure random sampling.
+    libact.query_strategies.uncertainty_sampling.UncertaintySampling
+        Pure uncertainty sampling without exploration.
+    libact.query_strategies.random_sampling.RandomSampling
+        Pure random sampling.
     """
 
     def __init__(self, *args, **kwargs):

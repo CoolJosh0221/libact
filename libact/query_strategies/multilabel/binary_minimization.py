@@ -24,9 +24,6 @@ class BinaryMinimization(QueryStrategy):
         np.random.RandomState instance. if np.random.RandomState instance,
         random_state is the random number generate.
 
-    Attributes
-    ----------
-
     Examples
     --------
     Here is an example of declaring a BinaryMinimization query_strategy object:

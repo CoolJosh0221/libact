@@ -3,7 +3,7 @@
 This module contains a class that implements Hinted Support Vector Machine, an
 active learning algorithm.
 
-Standalone hintsvm can be retrieved from https://github.com/yangarbiter/hintsvm
+Standalone hintsvm can be retrieved from https://github.com/ntucllab/hintsvm
 """
 import numpy as np
 

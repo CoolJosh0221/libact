@@ -18,7 +18,7 @@ NO_LABEL = -1
 
 class HierarchicalSampling(QueryStrategy):
 
-    """Hierarchical Sampling for Active Learning (HS)
+    r"""Hierarchical Sampling for Active Learning (HS)
 
     HS is an active learning scheme that exploits cluster structure in data.
     The original C++ implementation by the authors can be found at:
@@ -226,9 +226,6 @@ class HierarchicalSampling(QueryStrategy):
     def report_all_label(self):
         """
         Return the best label of the asked entry.
-
-        Parameters
-        ----------
 
         Returns
         -------

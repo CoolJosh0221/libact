@@ -45,10 +45,6 @@ class QUIRE(QueryStrategy):
         Independent term in kernel function.
         It is only significant in 'poly'.
 
-
-    Attributes
-    ----------
-
     Examples
     --------
     Here is an example of declaring a QUIRE query_strategy object:
