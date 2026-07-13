@@ -22,7 +22,16 @@ def load_project_version(repository_root):
     )
     metadata_version = pyproject["project"]["version"]
 
-    from libact import __version__ as package_version
+    import libact
 
-    ensure_version_match(metadata_version, package_version)
+    package_file = Path(libact.__file__).resolve()
+    expected_package_dir = (repository_root / "libact").resolve()
+    if package_file.parent != expected_package_dir:
+        raise RuntimeError(
+            "Documentation imported libact from "
+            f"{str(package_file)!r}; expected source under "
+            f"{str(expected_package_dir)!r}"
+        )
+
+    ensure_version_match(metadata_version, libact.__version__)
     return metadata_version

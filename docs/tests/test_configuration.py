@@ -18,6 +18,10 @@ from native_extensions import (
     install_native_extension_stubs,
 )
 from project_metadata import ensure_version_match, load_project_version
+from source_imports import prefer_repository_libact
+
+
+prefer_repository_libact(REPOSITORY_ROOT)
 
 
 class DocumentationConfigurationTests(unittest.TestCase):
@@ -31,9 +35,14 @@ class DocumentationConfigurationTests(unittest.TestCase):
             self.assertTrue(callable(getattr(module, symbol_name)))
             self.assertFalse(hasattr(module, "arbitrary_missing_symbol"))
 
+        import libact
         from libact.query_strategies import HintSVM, VarianceReduction
         from libact.query_strategies.multiclass.mdsp import MDSP
 
+        self.assertEqual(
+            Path(libact.__file__).resolve(),
+            (REPOSITORY_ROOT / "libact" / "__init__.py").resolve(),
+        )
         self.assertEqual(
             HintSVM.__module__, "libact.query_strategies.hintsvm"
         )
@@ -44,6 +53,17 @@ class DocumentationConfigurationTests(unittest.TestCase):
         self.assertEqual(
             MDSP.__module__, "libact.query_strategies.multiclass.mdsp"
         )
+
+    def test_competing_libact_editable_finder_is_removed(self):
+        class CompetingEditableFinder:
+            _name = "libact"
+            _top_level_modules = {"libact"}
+
+        finder = CompetingEditableFinder()
+        sys.meta_path.insert(0, finder)
+        prefer_repository_libact(REPOSITORY_ROOT)
+
+        self.assertNotIn(finder, sys.meta_path)
 
     def test_runtime_requirements_match_package_metadata(self):
         pyproject = tomllib.loads(

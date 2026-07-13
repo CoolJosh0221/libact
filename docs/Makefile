@@ -1,6 +1,6 @@
 SPHINXOPTS ?= -W --keep-going -n
-SPHINXBUILD ?= sphinx-build
 PYTHON ?= python
+SPHINXBUILD ?= $(PYTHON) -m sphinx
 SOURCEDIR = .
 BUILDDIR ?= _build
 HTMLDIR = $(BUILDDIR)/html

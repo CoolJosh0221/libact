@@ -13,10 +13,12 @@ sys.path.insert(0, str(REPOSITORY_ROOT))
 
 from native_extensions import install_native_extension_stubs
 from project_metadata import load_project_version
+from source_imports import prefer_repository_libact
 
 
 # Keep autodoc on the real source tree while providing only the two symbols
 # whose compiled implementations are intentionally absent from docs builds.
+prefer_repository_libact(REPOSITORY_ROOT)
 install_native_extension_stubs(REPOSITORY_ROOT)
 
 project = "libact"
