@@ -180,7 +180,8 @@ class Dataset(object):
         ------
         ValueError
             If entry_ids is not one-dimensional, labels is not a sequence,
-            their lengths differ, or entry_ids contains duplicate entries.
+            their lengths differ, entry_ids contains duplicate entries, or
+            any entry id is out of range (not in ``[0, len(dataset))``).
         """
         entry_ids = np.asarray(entry_ids)
         if entry_ids.ndim != 1:
@@ -198,6 +199,15 @@ class Dataset(object):
                 "%d and %d" % (entry_ids.shape[0], n_labels))
         if len(np.unique(entry_ids)) != entry_ids.shape[0]:
             raise ValueError("entry_ids contains duplicate entries")
+        # Validate the ids are all in range *before* applying any update, so
+        # a bad id fails cleanly instead of leaving a partial update behind
+        # (and so negative ids are rejected rather than silently wrapping
+        # around to the wrong entry via numpy indexing).
+        if entry_ids.size and (entry_ids.min() < 0 or
+                               entry_ids.max() >= len(self)):
+            raise ValueError(
+                "entry_ids must all be in [0, %d), got values in [%s, %s]"
+                % (len(self), entry_ids.min(), entry_ids.max()))
 
         if entry_ids.shape[0] == 0:
             return

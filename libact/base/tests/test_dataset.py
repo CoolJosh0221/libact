@@ -253,6 +253,24 @@ class TestUpdateBatchMethods(unittest.TestCase):
         self.assertEqual(observer.entry_calls, [(2, 7)])
         self.assertEqual(observer.batch_calls, [([2, 4], [3, 5])])
 
+    def test_out_of_range_entry_ids_raise_before_any_update(self):
+        # An out-of-range id must be rejected up front, leaving the dataset
+        # untouched — not applied partially up to the offending entry.
+        ds = self.setup_dataset()
+        fired = []
+        ds.on_update(lambda eid, lbl: fired.append(int(eid)))
+        with self.assertRaises(ValueError):
+            ds.update_batch([2, 4, 9999], [1, 0, 1])
+        self.assertEqual(fired, [])
+        self.assertEqual(ds.len_labeled(), 3)
+
+    def test_negative_entry_ids_raise(self):
+        # Negative ids must raise rather than silently wrapping around to
+        # the wrong entry via numpy indexing.
+        ds = self.setup_dataset()
+        with self.assertRaises(ValueError):
+            ds.update_batch([-1], [7])
+
 
 if __name__ == '__main__':
     unittest.main()
