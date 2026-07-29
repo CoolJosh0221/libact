@@ -195,6 +195,64 @@ class TestUpdateBatchMethods(unittest.TestCase):
         self.assertEqual(ds.get_entries()[1][2], 3)
         self.assertEqual(ds.get_entries()[1][4], 5)
 
+    def test_batch_callback_fires_once_after_all_labels(self):
+        # An on_update_batch observer is notified exactly once, with the
+        # whole batch, after every label has been applied.
+        ds = self.setup_dataset()
+        received = []
+        ds.on_update_batch(lambda ids, lbls: received.append(
+            (list(ids), list(lbls), ds.len_labeled())))
+        ds.update_batch([2, 4], [3, 5])
+        self.assertEqual(received, [([2, 4], [3, 5], 5)])
+
+    def test_batch_callback_not_fired_by_single_update(self):
+        ds = self.setup_dataset()
+        received = []
+        ds.on_update_batch(lambda ids, lbls: received.append(1))
+        ds.update(2, 3)
+        self.assertEqual(received, [])
+
+    def test_batch_callback_not_fired_on_empty_batch(self):
+        ds = self.setup_dataset()
+        received = []
+        ds.on_update_batch(lambda ids, lbls: received.append(1))
+        ds.update_batch([], [])
+        self.assertEqual(received, [])
+
+    def test_batch_aware_observer_skips_per_entry_stream(self):
+        # An observer registered on both channels (as every QueryStrategy
+        # is) gets the single batch notification instead of the
+        # per-entry callbacks; an independent per-entry callback still
+        # sees the full incremental stream.
+        class Observer(object):
+            def __init__(self):
+                self.entry_calls = []
+                self.batch_calls = []
+
+            def update(self, entry_id, label):
+                self.entry_calls.append((int(entry_id), label))
+
+            def update_batch(self, entry_ids, labels):
+                self.batch_calls.append(
+                    (list(map(int, entry_ids)), list(labels)))
+
+        ds = self.setup_dataset()
+        observer = Observer()
+        ds.on_update(observer.update)
+        ds.on_update_batch(observer.update_batch)
+        plain = []
+        ds.on_update(lambda eid, lbl: plain.append((int(eid), lbl)))
+
+        ds.update_batch([2, 4], [3, 5])
+        self.assertEqual(observer.entry_calls, [])
+        self.assertEqual(observer.batch_calls, [([2, 4], [3, 5])])
+        self.assertEqual(plain, [(2, 3), (4, 5)])
+
+        # A single update() notifies the per-entry channel as usual.
+        ds.update(2, 7)
+        self.assertEqual(observer.entry_calls, [(2, 7)])
+        self.assertEqual(observer.batch_calls, [([2, 4], [3, 5])])
+
 
 if __name__ == '__main__':
     unittest.main()

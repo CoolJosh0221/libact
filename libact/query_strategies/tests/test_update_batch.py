@@ -1,8 +1,10 @@
 """Integration tests for Dataset.update_batch with the real, stateful
-observers that rely on the per-entry (entry_id, label) callback: QUIRE
-(index bookkeeping), QueryByCommittee (committee retrain per label),
-EpsilonUncertaintySampling (model retrain per label) and
-ActiveLearningByLearning (bandit bookkeeping with preconditions).
+observers. Bookkeeping strategies (QUIRE index bookkeeping, ALBL bandit
+bookkeeping with preconditions) still observe the per-entry
+(entry_id, label) stream through the default update_batch replay, while
+model-retraining strategies (QueryByCommittee, BALD, InformationDensity,
+EpsilonUncertaintySampling) retrain exactly once per batch instead of
+once per entry.
 """
 import unittest
 
@@ -13,7 +15,9 @@ from libact.base.dataset import Dataset
 from libact.models import SklearnProbaAdapter
 from libact.query_strategies import (
     ActiveLearningByLearning,
+    BALD,
     EpsilonUncertaintySampling,
+    InformationDensity,
     QueryByCommittee,
     QUIRE,
     UncertaintySampling,
@@ -51,12 +55,66 @@ class TestUpdateBatchWithQuire(unittest.TestCase):
             self.assertNotIn(i, quire_batch.Uindex)
 
 
+def _spy(obj, method_name, calls):
+    """Wrap obj.method_name so each call appends to calls."""
+    original = getattr(obj, method_name)
+
+    def wrapper(*args, **kwargs):
+        calls.append(1)
+        return original(*args, **kwargs)
+
+    setattr(obj, method_name, wrapper)
+
+
 class TestUpdateBatchWithQueryByCommittee(unittest.TestCase):
 
-    def test_committee_retrains_once_per_entry(self):
+    def _make_qbc(self, ds):
+        return QueryByCommittee(
+            ds,
+            models=[
+                SklearnProbaAdapter(
+                    LogisticRegression(C=c, max_iter=200, solver='liblinear')
+                )
+                for c in [0.1, 1.0]
+            ],
+            random_state=0,
+        )
+
+    def test_committee_retrains_once_per_batch(self):
         ds, y = _make_dataset()
         np.random.seed(0)
-        qbc = QueryByCommittee(
+        qbc = self._make_qbc(ds)
+
+        teach_calls = []
+        _spy(qbc, 'teach_students', teach_calls)
+
+        ids = [11, 14, 17]
+        ds.update_batch(ids, [int(y[i]) for i in ids])
+        # One retrain for the whole batch, after all labels are applied —
+        # not one per entry (intermediate committees are never queried).
+        # A per-entry notification leaking through would also call
+        # teach_students via the update hook and fail this count.
+        self.assertEqual(len(teach_calls), 1)
+        self.assertEqual(ds.len_labeled(), 13)
+
+    def test_sequential_updates_still_retrain_per_entry(self):
+        ds, y = _make_dataset()
+        np.random.seed(0)
+        qbc = self._make_qbc(ds)
+
+        calls = []
+        _spy(qbc, 'teach_students', calls)
+
+        for i in [11, 14, 17]:
+            ds.update(i, int(y[i]))
+        self.assertEqual(len(calls), 3)
+
+
+class TestUpdateBatchWithBALD(unittest.TestCase):
+
+    def test_ensemble_retrains_once_per_batch(self):
+        ds, y = _make_dataset()
+        qs = BALD(
             ds,
             models=[
                 SklearnProbaAdapter(
@@ -68,23 +126,37 @@ class TestUpdateBatchWithQueryByCommittee(unittest.TestCase):
         )
 
         calls = []
-        original = qbc.teach_students
-
-        def spy(*args, **kwargs):
-            calls.append(1)
-            return original(*args, **kwargs)
-
-        qbc.teach_students = spy
+        _spy(qs, '_train_ensemble', calls)
 
         ids = [11, 14, 17]
         ds.update_batch(ids, [int(y[i]) for i in ids])
-        # Exactly the same notification stream as 3 sequential updates.
-        self.assertEqual(len(calls), 3)
+        self.assertEqual(len(calls), 1)
+        self.assertIsInstance(qs.make_query(), (int, np.integer))
+
+
+class TestUpdateBatchWithInformationDensity(unittest.TestCase):
+
+    def test_model_retrains_once_per_batch(self):
+        ds, y = _make_dataset()
+        qs = InformationDensity(
+            ds,
+            model=SklearnProbaAdapter(
+                LogisticRegression(max_iter=200, solver='liblinear')
+            ),
+            random_state=0,
+        )
+
+        calls = []
+        _spy(qs.model, 'train', calls)
+
+        ids = [13, 18]
+        ds.update_batch(ids, [int(y[i]) for i in ids])
+        self.assertEqual(len(calls), 1)
 
 
 class TestUpdateBatchWithEpsilonUS(unittest.TestCase):
 
-    def test_observer_retrains_without_error(self):
+    def test_model_retrains_once_per_batch(self):
         ds, y = _make_dataset()
         qs = EpsilonUncertaintySampling(
             ds,
@@ -94,8 +166,13 @@ class TestUpdateBatchWithEpsilonUS(unittest.TestCase):
             epsilon=0.1,
             random_state=0,
         )
+
+        calls = []
+        _spy(qs.model, 'train', calls)
+
         ids = [13, 18]
         ds.update_batch(ids, [int(y[i]) for i in ids])
+        self.assertEqual(len(calls), 1)
         # The strategy stays usable after the bulk update.
         self.assertIsInstance(qs.make_query(), (int, np.integer))
 

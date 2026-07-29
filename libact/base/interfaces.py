@@ -22,6 +22,7 @@ class QueryStrategy(with_metaclass(ABCMeta, object)):
     def __init__(self, dataset, **kwargs):
         self._dataset = dataset
         dataset.on_update(self.update)
+        dataset.on_update_batch(self.update_batch)
 
     @property
     def dataset(self):
@@ -41,6 +42,31 @@ class QueryStrategy(with_metaclass(ABCMeta, object)):
             The label of the queried sample.
         """
         pass
+
+    def update_batch(self, entry_ids, labels):
+        """Update the internal states of the QueryStrategy after a batch
+        of queried samples has been labeled.
+
+        Called exactly once by
+        :py:meth:`libact.base.dataset.Dataset.update_batch`, after all
+        labels in the batch have been applied to the dataset. The default
+        implementation replays the per-entry :py:meth:`update` hook once
+        per ``(entry_id, label)`` pair, in order, preserving the
+        semantics of strategies that do per-entry bookkeeping.
+        Strategies whose update hook retrains a model should override
+        this method to train once on the fully updated dataset instead
+        of once per entry.
+
+        Parameters
+        ----------
+        entry_ids : array-like of int, shape (n_updates,)
+            Entry ids of the newly labeled samples.
+
+        labels : sequence, shape (n_updates,)
+            The label of each newly labeled sample.
+        """
+        for entry_id, label in zip(entry_ids, labels):
+            self.update(entry_id, label)
 
     def _get_scores(self):
         """Return acquisition scores for all unlabeled samples.

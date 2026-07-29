@@ -45,6 +45,7 @@ class Dataset(object):
         self._y = y
         self.modified = True
         self._update_callback = set()
+        self._batch_update_callback = set()
 
     def __len__(self):
         """
@@ -150,13 +151,16 @@ class Dataset(object):
     def update_batch(self, entry_ids, labels):
         """Update multiple entries with their labels in a single call.
 
-        Labels are applied through :py:meth:`update` one entry at a time,
-        in the given order, so every registered callback observes exactly
-        the same incremental sequence of ``(entry_id, label)``
-        notifications as the equivalent series of individual ``update()``
-        calls. This keeps stateful observers correct (e.g. query
-        strategies that retrain models or maintain index bookkeeping in
-        their update hook).
+        Labels are applied one entry at a time, in the given order.
+        Observers registered through :py:meth:`on_update_batch` (every
+        :py:class:`libact.base.interfaces.QueryStrategy` registers
+        itself there) are notified exactly once, with the whole batch,
+        after all labels have been applied — so strategies that retrain
+        a model in their update hook can train once per batch instead of
+        once per entry. Callbacks registered only through
+        :py:meth:`on_update` observe the same incremental per-entry
+        ``(entry_id, label)`` stream as the equivalent series of
+        individual ``update()`` calls.
 
         Note that some observers impose assumptions of their own on the
         update stream; for instance ActiveLearningByLearning assumes each
@@ -195,8 +199,29 @@ class Dataset(object):
         if len(np.unique(entry_ids)) != entry_ids.shape[0]:
             raise ValueError("entry_ids contains duplicate entries")
 
+        if entry_ids.shape[0] == 0:
+            return
+
+        # Batch-aware observers are notified once after the whole batch
+        # is applied; skip their per-entry callback so they are not
+        # notified twice for the same labels.
+        batch_owners = set(
+            id(getattr(callback, '__self__', callback))
+            for callback in self._batch_update_callback
+        )
+        per_entry_callbacks = [
+            callback for callback in self._update_callback
+            if id(getattr(callback, '__self__', callback)) not in batch_owners
+        ]
+
+        self.modified = True
         for entry_id, label in zip(entry_ids, labels):
-            self.update(entry_id, label)
+            self._y[entry_id] = label
+            for callback in per_entry_callbacks:
+                callback(entry_id, label)
+
+        for callback in self._batch_update_callback:
+            callback(entry_ids, labels)
 
     def on_update(self, callback):
         """
@@ -208,6 +233,26 @@ class Dataset(object):
             The function to be called when dataset is updated.
         """
         self._update_callback.add(callback)
+
+    def on_update_batch(self, callback):
+        """
+        Add callback function to call once per :py:meth:`update_batch`.
+
+        During :py:meth:`update_batch`, an observer registered here is
+        notified exactly once with the full batch, after all labels have
+        been applied, instead of receiving the per-entry callbacks it
+        registered via :py:meth:`on_update`. Individual
+        :py:meth:`update` calls still notify only the per-entry
+        callbacks.
+
+        Parameters
+        ----------
+        callback : callable
+            Called as ``callback(entry_ids, labels)`` where ``entry_ids``
+            is an np.ndarray of the updated entry ids and ``labels`` the
+            matching labels.
+        """
+        self._batch_update_callback.add(callback)
 
     def format_sklearn(self):
         """

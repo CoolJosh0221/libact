@@ -206,7 +206,7 @@ supports querying a batch of distinct samples in one call:
 ```python
 ask_ids = qs.make_query_batch(10)         # top-10 by acquisition score
 labels = [lbr.label(X[i]) for i in ask_ids]
-trn_ds.update_batch(ask_ids, labels)      # one call, same per-entry callbacks
+trn_ds.update_batch(ask_ids, labels)      # strategies retrain once per batch
 ```
 
 A plain top-k batch can contain redundant near-duplicate points. Wrap
