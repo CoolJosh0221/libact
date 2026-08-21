@@ -141,6 +141,10 @@ class InformationDensity(QueryStrategy):
             dvalue = np.asarray(self.model.predict_proba(X_pool))
         elif isinstance(self.model, ContinuousModel):
             dvalue = np.asarray(self.model.predict_real(X_pool))
+        else:
+            raise TypeError(
+                "model has to be a ContinuousModel or ProbabilisticModel"
+            )
 
         if self.method == 'lc':
             return 1.0 - np.max(dvalue, axis=1)
